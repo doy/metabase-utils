@@ -43,7 +43,7 @@ fn main() {
     let mut file =
         std::fs::File::create("investment_categories.tsv").unwrap();
     for row in sheets[0].rows().skip(1) {
-        if row[0] == "" {
+        if row[0].is_empty() {
             break;
         }
         let percentage: f64 = row[1].trim_end_matches('%').parse().unwrap();
@@ -62,14 +62,22 @@ fn main() {
 
     let mut file = std::fs::File::create("holdings.tsv").unwrap();
     for row in sheets[1].rows().skip(2) {
-        if row[0] == "" {
+        if row[0].is_empty() {
             break;
         }
         file.write_all(
             [
                 row[0].as_ref(),
-                if row[1] == "" { "\\N" } else { row[1].as_ref() },
-                if row[2] == "" { "\\N" } else { row[2].as_ref() },
+                if row[1].is_empty() {
+                    "\\N"
+                } else {
+                    row[1].as_ref()
+                },
+                if row[2].is_empty() {
+                    "\\N"
+                } else {
+                    row[2].as_ref()
+                },
                 row[3].as_ref(),
                 row[7].replace(['$', ','].as_ref(), "").as_ref(),
                 row[8].replace(['$', ','].as_ref(), "").as_ref(),
