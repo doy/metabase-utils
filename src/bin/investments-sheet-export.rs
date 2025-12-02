@@ -32,12 +32,14 @@ impl Sheet {
     }
 }
 
+fn get(url: &str) -> String {
+    reqwest::blocking::get(url).unwrap().text().unwrap()
+}
+
 fn main() {
     let sheets: Vec<_> = std::env::args()
         .skip(1)
-        .map(|u| {
-            Sheet::new(&reqwest::blocking::get(&u).unwrap().text().unwrap())
-        })
+        .map(|u| Sheet::new(&get(&u)))
         .collect();
 
     let mut file =
@@ -60,33 +62,115 @@ fn main() {
     }
     file.sync_all().unwrap();
 
+    let mut names: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+    let mut prices: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+    let mut expense_ratios: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
     let mut file = std::fs::File::create("holdings.tsv").unwrap();
     for row in sheets[1].rows().skip(2) {
-        if row[0].is_empty() {
+        let account: &str = &row[0];
+        if account.is_empty() {
             break;
         }
-        file.write_all(
+
+        let symbol = &row[1];
+        let out_row = if !symbol.is_empty()
+            && symbol.chars().all(|c| c.is_ascii_digit())
+        {
+            let name = names.entry(symbol.to_string()).or_insert_with(|| {
+                let json = get(&format!("https://institutional.vanguard.com/investments/profileServiceProxy?portIds={symbol}"));
+                println!("{json}");
+                let data: serde_json::Value = serde_json::from_str(&json).unwrap();
+                data
+                    .get("fundNames")
+                    .unwrap()
+                    .get("content")
+                    .unwrap()
+                    .get(0)
+                    .unwrap()
+                    .get("fundFullName")
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .to_string()
+            });
+            let price = prices.entry(symbol.to_string()).or_insert_with(|| {
+                let json = get(&format!("https://institutional.vanguard.com/investments/valuationPricesServiceProxy?timePeriodCode=D&priceTypeCodes=MKTP,NAV&portIds={symbol}"));
+                println!("{json}");
+                let data: serde_json::Value = serde_json::from_str(&json).unwrap();
+                data
+                    .get("fundPrices")
+                    .unwrap()
+                    .get("content")
+                    .unwrap()
+                    .get(0)
+                    .unwrap()
+                    .get("price")
+                    .unwrap()
+                    .as_f64()
+                    .unwrap()
+                    .to_string()
+            });
+            let expense_ratio = expense_ratios.entry(symbol.to_string()).or_insert_with(|| {
+                let json = get(&format!("https://institutional.vanguard.com/investments/feesExpenseServiceProxy?portIds={symbol}"));
+                println!("{json}");
+                let data: serde_json::Value = serde_json::from_str(&json).unwrap();
+                data
+                    .get("feesExpense")
+                    .unwrap()
+                    .get("content")
+                    .unwrap()
+                    .get(0)
+                    .unwrap()
+                    .get("expense")
+                    .unwrap()
+                    .get(8)
+                    .unwrap()
+                    .get("percent")
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .to_string()
+            });
             [
-                row[0].as_ref(),
-                if row[1].is_empty() {
-                    "\\N"
-                } else {
-                    row[1].as_ref()
-                },
-                if row[2].is_empty() {
-                    "\\N"
-                } else {
-                    row[2].as_ref()
-                },
-                row[3].as_ref(),
-                row[7].replace(['$', ','].as_ref(), "").as_ref(),
-                row[8].replace(['$', ','].as_ref(), "").as_ref(),
-                row[11].as_ref(),
+                // account
+                account,
+                // symbol
+                symbol,
+                // name
+                name,
+                // category
+                &row[3],
+                // shares
+                &row[7].replace(['$', ','], ""),
+                // price
+                price,
+                // expense ratio
+                expense_ratio,
             ]
             .join("\t")
-            .as_bytes(),
-        )
-        .unwrap();
+        } else {
+            [
+                // account
+                account,
+                // symbol
+                if symbol.is_empty() { "\\N" } else { symbol },
+                // name
+                if row[2].is_empty() { "\\N" } else { &row[2] },
+                // category
+                &row[3],
+                // shares
+                &row[7].replace(['$', ','], ""),
+                // price
+                &row[8].replace(['$', ','], ""),
+                // expense ratio
+                &row[11],
+            ]
+            .join("\t")
+        };
+        file.write_all(out_row.as_bytes()).unwrap();
         file.write_all(b"\n").unwrap();
     }
     file.sync_all().unwrap();
