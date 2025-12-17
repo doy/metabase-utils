@@ -84,7 +84,7 @@ fn main() {
             && symbol.chars().all(|c| c.is_ascii_digit())
         {
             let name = names.entry(symbol.to_string()).or_insert_with(|| {
-                let json = get(&format!("https://workplace.vanguard.com/investments/profileServiceProxy?portIds={symbol}"));
+                let json = get(&format!("https://investor.vanguard.com/investments/profileServiceProxy?portIds={symbol}"));
                 let data: serde_json::Value = serde_json::from_str(&json).unwrap();
                 data
                     .get("fundNames")
@@ -100,7 +100,7 @@ fn main() {
                     .to_string()
             });
             let price = prices.entry(symbol.to_string()).or_insert_with(|| {
-                let json = get(&format!("https://workplace.vanguard.com/investments/valuationPricesServiceProxy?timePeriodCode=D&priceTypeCodes=MKTP,NAV&portIds={symbol}"));
+                let json = get(&format!("https://investor.vanguard.com/investments/valuationPricesServiceProxy?timePeriodCode=D&priceTypeCodes=MKTP,NAV&portIds={symbol}"));
                 let data: serde_json::Value = serde_json::from_str(&json).unwrap();
                 data
                     .get("fundPrices")
@@ -116,7 +116,7 @@ fn main() {
                     .to_string()
             });
             let expense_ratio = expense_ratios.entry(symbol.to_string()).or_insert_with(|| {
-                let json = get(&format!("https://workplace.vanguard.com/investments/feesExpenseServiceProxy?portIds={symbol}"));
+                let json = get(&format!("https://investor.vanguard.com/investments/feesExpenseServiceProxy?portIds={symbol}"));
                 let data: serde_json::Value = serde_json::from_str(&json).unwrap();
                 data
                     .get("feesExpense")
