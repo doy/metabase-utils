@@ -105,22 +105,25 @@ fn main() {
                     .unwrap()
                     .to_string()
             });
-            let price = prices.entry(symbol.to_string()).or_insert_with(|| {
-                let json = get(&format!("https://investor.vanguard.com/vmf/api/{symbol}/price"));
-                let data: serde_json::Value = serde_json::from_str(&json).unwrap();
-                data
-                    .get("currentPrice")
-                    .unwrap()
-                    .get("dailyPrice")
-                    .unwrap()
-                    .get("regular")
-                    .unwrap()
-                    .get("price")
-                    .unwrap()
-                    .as_str()
-                    .unwrap()
-                    .to_string()
-            });
+            let price =
+                prices.entry(symbol.to_string()).or_insert_with(|| {
+                    let json = get(&format!(
+                        "https://investor.vanguard.com/vmf/api/{symbol}/price"
+                    ));
+                    let data: serde_json::Value =
+                        serde_json::from_str(&json).unwrap();
+                    data.get("currentPrice")
+                        .unwrap()
+                        .get("dailyPrice")
+                        .unwrap()
+                        .get("regular")
+                        .unwrap()
+                        .get("price")
+                        .unwrap()
+                        .as_str()
+                        .unwrap()
+                        .to_string()
+                });
             let expense_ratio = expense_ratios.entry(symbol.to_string()).or_insert_with(|| {
                 let html = get(&format!("https://investor.vanguard.com/investment-products/mutual-funds/profile/{symbol}"));
                 let tree = scraper::Html::parse_document(&html);

@@ -2,7 +2,7 @@
 name = "metabase-utils"
 version = "0.0.1"
 authors = ["Jesse Luehrs <doy@tozt.net>"]
-edition = "2018"
+edition = "2024"
 
 [dependencies]
 csv = "1.4"
