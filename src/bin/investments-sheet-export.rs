@@ -84,52 +84,60 @@ fn main() {
             && symbol.chars().all(|c| c.is_ascii_digit())
         {
             let name = names.entry(symbol.to_string()).or_insert_with(|| {
-                let json = get(&format!("https://investor.vanguard.com/investments/profileServiceProxy?portIds={symbol}"));
-                let data: serde_json::Value = serde_json::from_str(&json).unwrap();
-                data
-                    .get("fundNames")
+                let html = get(&format!("https://investor.vanguard.com/investment-products/mutual-funds/profile/{symbol}"));
+                let tree = scraper::Html::parse_document(&html);
+                let json = tree
+                    .root_element()
+                    .descendent_elements()
+                    .find(|e| {
+                        e.value().name() == "script"
+                            && e.value().id() == Some("fundProfileData")
+                    })
                     .unwrap()
-                    .get("content")
+                    .inner_html();
+                let data: serde_json::Value =
+                    serde_json::from_str(&json).unwrap();
+                data.get("fundProfile")
                     .unwrap()
-                    .get(0)
-                    .unwrap()
-                    .get("fundFullName")
+                    .get("longName")
                     .unwrap()
                     .as_str()
                     .unwrap()
                     .to_string()
             });
             let price = prices.entry(symbol.to_string()).or_insert_with(|| {
-                let json = get(&format!("https://investor.vanguard.com/investments/valuationPricesServiceProxy?timePeriodCode=D&priceTypeCodes=MKTP,NAV&portIds={symbol}"));
+                let json = get(&format!("https://investor.vanguard.com/vmf/api/{symbol}/price"));
                 let data: serde_json::Value = serde_json::from_str(&json).unwrap();
                 data
-                    .get("fundPrices")
+                    .get("currentPrice")
                     .unwrap()
-                    .get("content")
+                    .get("dailyPrice")
                     .unwrap()
-                    .get(0)
+                    .get("regular")
                     .unwrap()
                     .get("price")
                     .unwrap()
-                    .as_f64()
+                    .as_str()
                     .unwrap()
                     .to_string()
             });
             let expense_ratio = expense_ratios.entry(symbol.to_string()).or_insert_with(|| {
-                let json = get(&format!("https://investor.vanguard.com/investments/feesExpenseServiceProxy?portIds={symbol}"));
-                let data: serde_json::Value = serde_json::from_str(&json).unwrap();
-                data
-                    .get("feesExpense")
+                let html = get(&format!("https://investor.vanguard.com/investment-products/mutual-funds/profile/{symbol}"));
+                let tree = scraper::Html::parse_document(&html);
+                let json = tree
+                    .root_element()
+                    .descendent_elements()
+                    .find(|e| {
+                        e.value().name() == "script"
+                            && e.value().id() == Some("fundProfileData")
+                    })
                     .unwrap()
-                    .get("content")
+                    .inner_html();
+                let data: serde_json::Value =
+                    serde_json::from_str(&json).unwrap();
+                data.get("fundProfile")
                     .unwrap()
-                    .get(0)
-                    .unwrap()
-                    .get("expense")
-                    .unwrap()
-                    .get(8)
-                    .unwrap()
-                    .get("percent")
+                    .get("expenseRatio")
                     .unwrap()
                     .as_str()
                     .unwrap()
