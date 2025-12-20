@@ -383,4 +383,4 @@ CREATE VIEW spending AS
         category != 'Donations' and
         category != 'Family' and
         category != 'Reimbursables' and
-        category != 'Apartment Principal Payment';
+        category != 'Home Equity';
