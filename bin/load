@@ -16,11 +16,9 @@ import_csv() {
   done
 }
 
-(
-  cd /home/doy/coding/ynab-export
-  cargo run
-  cargo run sqlite3-schema | sqlite
-)
+(cd /home/doy/coding/ynab-export && cargo build)
+/home/doy/coding/ynab-export/target/debug/ynab-export
+/home/doy/coding/ynab-export/target/debug/ynab-export sqlite3-schema | sqlite
 
 seq 1000000 | sqlite ".import '|cat -' ints"
 
